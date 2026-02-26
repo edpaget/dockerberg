@@ -1,0 +1,2 @@
+node.environment=dockerberg
+node.data-dir=/data/trino

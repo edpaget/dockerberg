@@ -1,0 +1,4 @@
+-server
+-Xmx${TRINO_MEMORY}
+-XX:+UseG1GC
+-XX:+ExitOnOutOfMemoryError
