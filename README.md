@@ -76,3 +76,16 @@ docker run -d \
   --name dockerberg \
   dockerberg
 ```
+
+## Development
+
+```bash
+make build        # Build the Docker image
+make test         # Run all BATS tests
+make test-fast    # Fast tests only
+make clean        # Remove test containers and image
+```
+
+Tests use [BATS](https://github.com/bats-core/bats-core) and live in the `test/` directory.
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for commit messages. See [CLAUDE.md](CLAUDE.md) for full development guidelines.
