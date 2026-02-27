@@ -10,12 +10,15 @@
 DOCKERBERG_IMAGE ?= dockerberg:test
 export DOCKERBERG_IMAGE
 
-.PHONY: build test test-fast test-slow clean
+.PHONY: build ensure-image test test-fast test-slow clean
 
 build:
 	docker build -t $(DOCKERBERG_IMAGE) .
 
-test: build
+ensure-image:
+	@docker image inspect $(DOCKERBERG_IMAGE) >/dev/null 2>&1 || $(MAKE) build
+
+test: ensure-image
 	bats test/build.bats \
 	     test/health.bats \
 	     test/postgres.bats \
@@ -25,7 +28,7 @@ test: build
 	     test/env_vars.bats \
 	     test/persistence.bats
 
-test-fast: build
+test-fast: ensure-image
 	bats test/build.bats \
 	     test/health.bats \
 	     test/postgres.bats \
@@ -33,7 +36,7 @@ test-fast: build
 	     test/trino.bats \
 	     test/iceberg.bats
 
-test-slow: build
+test-slow: ensure-image
 	bats test/env_vars.bats \
 	     test/persistence.bats
 

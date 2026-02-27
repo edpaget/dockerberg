@@ -16,27 +16,27 @@ setup_file() {
 }
 
 @test "image contains PostgreSQL binary" {
-    run docker run --rm "$DOCKERBERG_IMAGE" bash -c "which pg_isready"
+    run docker run --rm --entrypoint bash "$DOCKERBERG_IMAGE" -c "which pg_isready"
     [ "$status" -eq 0 ]
 }
 
 @test "image contains SeaweedFS binary" {
-    run docker run --rm "$DOCKERBERG_IMAGE" bash -c "which weed"
+    run docker run --rm --entrypoint bash "$DOCKERBERG_IMAGE" -c "which weed"
     [ "$status" -eq 0 ]
 }
 
 @test "image contains Trino server" {
-    run docker run --rm "$DOCKERBERG_IMAGE" bash -c "test -x /opt/trino/bin/launcher"
+    run docker run --rm --entrypoint bash "$DOCKERBERG_IMAGE" -c "test -x /opt/trino/bin/launcher"
     [ "$status" -eq 0 ]
 }
 
 @test "image contains Trino CLI" {
-    run docker run --rm "$DOCKERBERG_IMAGE" bash -c "test -x /usr/local/bin/trino"
+    run docker run --rm --entrypoint bash "$DOCKERBERG_IMAGE" -c "test -x /usr/local/bin/trino"
     [ "$status" -eq 0 ]
 }
 
 @test "image contains supervisord" {
-    run docker run --rm "$DOCKERBERG_IMAGE" bash -c "which supervisord"
+    run docker run --rm --entrypoint bash "$DOCKERBERG_IMAGE" -c "which supervisord"
     [ "$status" -eq 0 ]
 }
 
