@@ -37,7 +37,9 @@ EOF
     su - postgres -c "psql -c \"CREATE USER ${POSTGRES_USER} WITH PASSWORD '${POSTGRES_PASSWORD}';\""  2>/dev/null || true
     su - postgres -c "psql -c \"CREATE DATABASE ${POSTGRES_DB} OWNER ${POSTGRES_USER};\"" 2>/dev/null || true
 
-    # Pre-create Iceberg JDBC catalog metadata tables (works around schema migration bug)
+    # Pre-create Iceberg JDBC catalog metadata tables
+    # Required since Trino 414+: the JDBC catalog sets initializeCatalogTables=false
+    # See: https://github.com/trinodb/trino/issues/20419
     PGPASSWORD="${POSTGRES_PASSWORD}" psql -U "${POSTGRES_USER}" -h 127.0.0.1 -d "${POSTGRES_DB}" <<EOSQL
 CREATE TABLE IF NOT EXISTS iceberg_tables (
     catalog_name VARCHAR(255) NOT NULL,
