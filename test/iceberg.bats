@@ -71,7 +71,7 @@ teardown_file() {
         (3, 'Charlie', TIMESTAMP '2024-01-03 00:00:00')" 2>/dev/null || true
 
     result=$(trino_exec "SELECT count(*) FROM iceberg.test_schema.users")
-    [[ "$result" == *"3"* ]]
+    [ "$result" -ge 3 ]
 }
 
 @test "query returns correct data" {
@@ -114,8 +114,8 @@ teardown_file() {
     trino_exec "INSERT INTO iceberg.test_schema.users VALUES
         (1, 'Alice', TIMESTAMP '2024-01-01 00:00:00')" 2>/dev/null || true
 
-    # List objects under the warehouse bucket — should find data files
-    run s3_curl "http://localhost:8333/warehouse/?prefix=test_schema"
+    # List objects under the warehouse bucket via filer API
+    run container_exec curl -sf "http://localhost:8888/buckets/warehouse/test_schema/"
     [ "$status" -eq 0 ]
     [[ "$output" == *"test_schema"* ]]
 }

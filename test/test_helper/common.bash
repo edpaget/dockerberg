@@ -12,7 +12,7 @@ _container_name() {
 # Usage: start_container [docker-run args...]
 # Sets CONTAINER_NAME for use in subsequent helpers.
 start_container() {
-    CONTAINER_NAME="$(_container_name)"
+    export CONTAINER_NAME="$(_container_name)"
     docker run -d --name "$CONTAINER_NAME" "$@" "$DOCKERBERG_IMAGE"
 }
 
@@ -52,7 +52,7 @@ wait_for_seaweedfs() {
     local elapsed=0
     echo "# Waiting for SeaweedFS S3 (max ${max_wait}s)..." >&3
     while [ "$elapsed" -lt "$max_wait" ]; do
-        if container_exec curl -sf http://localhost:8333/ >/dev/null 2>&1; then
+        if container_exec curl -s -o /dev/null -w '%{http_code}' http://localhost:8333/ 2>/dev/null | grep -q '[234]'; then
             echo "# SeaweedFS ready after ${elapsed}s" >&3
             return 0
         fi
@@ -82,6 +82,25 @@ wait_for_trino() {
     return 1
 }
 
+# Wait for the warehouse bucket to exist and accept writes (max 60s).
+# SeaweedFS volume server needs time to initialize after the filer is up.
+wait_for_warehouse_bucket() {
+    local max_wait="${1:-60}"
+    local elapsed=0
+    echo "# Waiting for warehouse bucket (max ${max_wait}s)..." >&3
+    while [ "$elapsed" -lt "$max_wait" ]; do
+        if container_exec curl -sf -X PUT -d "healthcheck" http://localhost:8888/buckets/warehouse/.healthcheck >/dev/null 2>&1; then
+            container_exec curl -sf -X DELETE http://localhost:8888/buckets/warehouse/.healthcheck >/dev/null 2>&1 || true
+            echo "# Warehouse bucket ready after ${elapsed}s" >&3
+            return 0
+        fi
+        sleep 2
+        elapsed=$((elapsed + 2))
+    done
+    echo "# Warehouse bucket did not become writable within ${max_wait}s" >&3
+    return 1
+}
+
 # Wait for all three services.
 wait_for_all_services() {
     wait_for_postgres
@@ -96,7 +115,7 @@ pg_exec() {
     local sql="$1"
     local user="${2:-iceberg}"
     local db="${3:-iceberg}"
-    container_exec psql -h 127.0.0.1 -U "$user" -d "$db" -tAc "$sql"
+    container_exec env PGPASSWORD="${POSTGRES_PASSWORD:-iceberg}" psql -h 127.0.0.1 -U "$user" -d "$db" -tAqc "$sql"
 }
 
 # Run a SQL statement via the Trino CLI inside the container.

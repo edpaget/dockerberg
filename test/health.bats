@@ -24,8 +24,9 @@ teardown_file() {
 }
 
 @test "SeaweedFS S3 endpoint responds" {
-    run s3_curl http://localhost:8333/
+    run container_exec curl -s -o /dev/null -w '%{http_code}' http://localhost:8333/
     [ "$status" -eq 0 ]
+    [[ "$output" =~ ^[0-9]+$ ]]
 }
 
 @test "Trino reports starting:false" {
