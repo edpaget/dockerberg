@@ -24,7 +24,7 @@ load test_helper/common
     done
 
     # Verify the custom user can connect to the custom database
-    result=$(docker exec "$CONTAINER_NAME" psql -h 127.0.0.1 -U myuser -d mydb -tAc "SELECT 1")
+    result=$(docker exec "$CONTAINER_NAME" env PGPASSWORD=mypass psql -h 127.0.0.1 -U myuser -d mydb -tAqc "SELECT 1")
     [ "$result" = "1" ]
 
     docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1
@@ -68,16 +68,17 @@ load test_helper/common
     # Wait for SeaweedFS
     local elapsed=0
     while [ "$elapsed" -lt 30 ]; do
-        if docker exec "$CONTAINER_NAME" curl -sf http://localhost:8333/ >/dev/null 2>&1; then
+        if docker exec "$CONTAINER_NAME" curl -s -o /dev/null -w '%{http_code}' http://localhost:8333/ 2>/dev/null | grep -q '[234]'; then
             break
         fi
         sleep 1
         elapsed=$((elapsed + 1))
     done
 
-    # SeaweedFS S3 should still be reachable
-    run docker exec "$CONTAINER_NAME" curl -sf http://localhost:8333/
+    # SeaweedFS S3 should still be reachable (403 is OK — auth is configured)
+    run docker exec "$CONTAINER_NAME" curl -s -o /dev/null -w '%{http_code}' http://localhost:8333/
     [ "$status" -eq 0 ]
+    [[ "$output" =~ ^[0-9]+$ ]]
 
     # Verify config file has the custom keys
     run docker exec "$CONTAINER_NAME" cat /etc/seaweedfs/s3.json
@@ -113,10 +114,20 @@ load test_helper/common
         -e WAREHOUSE_PATH=s3://custom-bucket \
         "$DOCKERBERG_IMAGE"
 
-    # Wait for SeaweedFS
+    # Wait for SeaweedFS filer
     local elapsed=0
     while [ "$elapsed" -lt 30 ]; do
-        if docker exec "$CONTAINER_NAME" curl -sf http://localhost:8333/ >/dev/null 2>&1; then
+        if docker exec "$CONTAINER_NAME" curl -sf http://localhost:8888/ >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+        elapsed=$((elapsed + 1))
+    done
+
+    # Wait for the custom bucket to be created by the entrypoint background process
+    elapsed=0
+    while [ "$elapsed" -lt 30 ]; do
+        if docker exec "$CONTAINER_NAME" curl -sf http://localhost:8888/buckets/custom-bucket/ >/dev/null 2>&1; then
             break
         fi
         sleep 1
@@ -124,7 +135,7 @@ load test_helper/common
     done
 
     # Verify the custom bucket was created
-    run docker exec "$CONTAINER_NAME" curl -sf http://localhost:8333/custom-bucket/
+    run docker exec "$CONTAINER_NAME" curl -sf http://localhost:8888/buckets/custom-bucket/
     [ "$status" -eq 0 ]
 
     # Verify Trino catalog points to custom warehouse path

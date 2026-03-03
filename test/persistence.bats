@@ -14,7 +14,7 @@ setup_file() {
     docker volume create "$PERSIST_TR_VOL" >/dev/null
 
     # --- First run: start container, insert data, stop ---
-    CONTAINER_NAME="dockerberg-persist-1-$$"
+    export CONTAINER_NAME="dockerberg-persist-1-$$"
     docker run -d --name "$CONTAINER_NAME" \
         -v "${PERSIST_PG_VOL}:/data/postgres" \
         -v "${PERSIST_SW_VOL}:/data/seaweedfs" \
@@ -39,7 +39,7 @@ setup_file() {
     docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1
 
     # --- Second run: start new container with same volumes ---
-    CONTAINER_NAME="dockerberg-persist-2-$$"
+    export CONTAINER_NAME="dockerberg-persist-2-$$"
     docker run -d --name "$CONTAINER_NAME" \
         -v "${PERSIST_PG_VOL}:/data/postgres" \
         -v "${PERSIST_SW_VOL}:/data/seaweedfs" \
